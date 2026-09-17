@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#8fd3ff">
+<title>Build It</title>
+<style>
+  :root {
+    --sky: #8fd3ff;
+    --dirt: #b07a4a;
+    --dirt-dark: #8d5f38;
+    --ink: #1d1d1d;
+    --gold: #ffc400;
+    --yellow: #f6b81a;
+    --brick: #c0563a;
+    --rock: #8d9199;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--sky);
+    font-family: "Nunito", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+    color: var(--ink);
+    touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  .screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ---------- Menu ---------- */
+  #menu {
+    background: linear-gradient(var(--sky) 0 62%, var(--dirt) 62% 100%);
+    align-items: center; justify-content: center; gap: 2.5vh;
+  }
+  #menu h1 {
+    margin: 0; font-size: clamp(36px, 10vh, 88px); font-weight: 900; letter-spacing: 1px;
+    color: var(--yellow); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
+    text-shadow: 0 6px 0 rgba(0,0,0,.2);
+  }
+  .menu-row { display: flex; gap: 2.5vw; flex-wrap: wrap; justify-content: center; padding: 0 16px; }
+  .big-choice {
+    width: clamp(190px, 28vw, 340px); height: clamp(170px, 42vh, 320px);
+    background: #fff; border: 8px solid var(--ink); border-radius: 32px;
+    box-shadow: 0 10px 0 var(--ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5vh;
+    padding: 14px;
+  }
+  .big-choice:active { transform: translateY(8px); box-shadow: 0 2px 0 var(--ink); }
+  .big-choice .pic { width: 100%; height: 62%; display: flex; align-items: center; justify-content: center; gap: 3%; }
+  .big-choice .pic svg { height: 100%; width: auto; max-width: 100%; overflow: visible; }
+  .big-choice .lbl { font-size: clamp(22px, 5vh, 42px); font-weight: 900; }
+  .big-choice .sum { font-size: clamp(26px, 6vh, 52px); font-weight: 900; }
+
+  .parent {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+    background: rgba(255,255,255,.88); border-radius: 999px; padding: 6px 12px;
+    font-size: 17px; font-weight: 700; max-width: calc(100% - 24px);
+  }
+  .parent .gap { width: 12px; }
+  .parent button {
+    border: 3px solid var(--ink); background: #fff; border-radius: 999px;
+    min-width: 50px; height: 42px; padding: 0 12px; font-size: 19px; font-weight: 900;
+  }
+  .parent button.on { background: var(--gold); }
+
+  .icon-btn {
+    width: clamp(56px, 11vh, 90px); height: clamp(56px, 11vh, 90px); flex: none;
+    border: 5px solid var(--ink); border-radius: 50%; background: #fff;
+    font-size: clamp(28px, 6vh, 48px); line-height: 1;
+    display: flex; align-items: center; justify-content: center; text-decoration: none;
+    box-shadow: 0 5px 0 var(--ink);
+  }
+  .icon-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .corner { position: absolute; top: 16px; left: 16px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    height: clamp(72px, 16vh, 124px); flex: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 0 14px; background: var(--sky);
+    border-bottom: 6px solid var(--ink);
+  }
+  .prompt {
+    display: flex; align-items: center; gap: 12px;
+    height: 84%; padding: 0 22px;
+    background: #fff; border: 6px solid var(--ink); border-radius: 26px;
+    box-shadow: 0 5px 0 var(--ink);
+  }
+  .prompt:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .prompt .speaker { font-size: clamp(24px, 5.5vh, 46px); }
+  .prompt .sign { font-size: clamp(42px, 11vh, 92px); font-weight: 900; line-height: 1; min-width: 1.2em; text-align: center; }
+  .prompt .sign.pulse { animation: pulse .5s; }
+  .stars { display: flex; gap: 4px; font-size: clamp(24px, 6vh, 50px); line-height: 1; min-width: clamp(56px, 11vh, 90px); justify-content: flex-end; }
+  .stars span { color: rgba(0,0,0,.18); transition: color .3s; }
+  .stars span.got { color: var(--gold); -webkit-text-stroke: 2px var(--ink); animation: pop .5s; }
+
+  /* ---------- Site (shared scene) ---------- */
+  .site {
+    flex: 1; position: relative; overflow: hidden;
+    background:
+      linear-gradient(var(--sky) 0 58%, var(--dirt-dark) 58% 61%, var(--dirt) 61% 100%);
+  }
+  .equation {
+    position: absolute; left: 50%; top: 2%; transform: translateX(-50%);
+    font-size: clamp(26px, 6.5vh, 58px); font-weight: 900; white-space: nowrap;
+    background: rgba(255,255,255,.9); border: 5px solid var(--ink); border-radius: 18px;
+    padding: 2px 20px; display: none;
+  }
+  .equation.on { display: block; }
+
+  /* Machines */
+  .machine { position: absolute; bottom: 4%; }
+  .machine svg { width: 100%; height: auto; display: block; overflow: visible; }
+  #digger { left: 1%; width: min(34%, 46vh); }
+  #truck { right: 2%; width: min(52%, 70vh); bottom: 4%; }
+  #truck.away { transition: transform 1.6s cubic-bezier(.55,0,.85,.4); transform: translateX(120vw); }
+  .arm { transform-box: view-box; transform-origin: 152px 116px; transition: transform .6s ease-in-out; }
+  #digger.tipping .arm { transform: rotate(-16deg); }
+
+  /* The rocks sit in the truck bed; percentages match the bed in the truck's viewBox
+     (x 30..200, y 60..132 of 340 x 200), so they ride along when it drives off. */
+  #bed {
+    position: absolute; left: 8.8%; top: 30%; width: 50%; height: 36%;
+    display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 4%;
+  }
+  /* Bricks sit on a pallet on the ground */
+  #pallet-wrap { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); }
+  #towerBest { color: var(--ink); -webkit-text-stroke: 0; font-size: clamp(20px, 5vh, 42px); }
+  #bricks {
+    display: flex; flex-wrap: wrap-reverse; align-items: flex-end; justify-content: center; gap: 2% 2%;
+    min-height: 12vh;
+  }
+  .pallet { height: 3.5vh; background: repeating-linear-gradient(90deg, #a9763f 0 6%, #8a5f31 6% 8%); border: 5px solid var(--ink); border-radius: 6px; margin-top: 6px; }
+
+  /* Hook and cable for taking bricks away */
+  #hook {
+    position: absolute; left: 50%; top: -14%; width: min(16%, 120px);
+    transform: translate(-50%, 0); transition: transform 1s ease-in-out;
+  }
+  #hook svg { width: 100%; height: auto; overflow: visible; }
+
+  /* Counting items */
+  .item { position: relative; display: flex; align-items: center; justify-content: center; }
+  .item svg, .item .brick-face { width: 100%; height: 100%; display: block; }
+  .item .badge {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0);
+    min-width: 1.6em; padding: 0 .2em; border-radius: 999px;
+    background: #fff; border: 4px solid var(--ink);
+    font-size: min(3.8vh, 4vw); font-weight: 900; line-height: 1.3; text-align: center;
+    transition: transform .25s cubic-bezier(.3,1.6,.5,1);
+  }
+  .item.counted .badge { transform: translate(-50%, -50%) scale(1); }
+  .item.lit .badge { background: var(--gold); }
+  .item.drop { animation: drop .6s cubic-bezier(.3,.7,.4,1.4); }
+  .item.lifted { transition: transform 1s ease-in-out; transform: translateY(-80vh); }
+  .rock { width: 30%; aspect-ratio: 5 / 4; }
+  .brick { width: 18%; aspect-ratio: 2 / 1; }
+  .brick-face {
+    background:
+      linear-gradient(transparent 0 46%, rgba(0,0,0,.35) 46% 54%, transparent 54% 100%),
+      var(--brick);
+    border: 5px solid var(--ink); border-radius: 6px;
+  }
+
+  /* Answer signs */
+  #picks {
+    position: absolute; left: 0; right: 0; bottom: 3%;
+    display: none; justify-content: center; gap: 4vw;
+  }
+  #picks.on { display: flex; }
+  .pick {
+    width: min(20vw, 22vh); height: min(20vw, 22vh);
+    background: var(--yellow); border: 7px solid var(--ink); border-radius: 20px;
+    box-shadow: 0 8px 0 var(--ink);
+    font-size: min(12vw, 13vh); font-weight: 900; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pick:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--ink); }
+  .pick.wrong { animation: shake .5s; }
+
+  /* ---------- Tower ---------- */
+  #tower-area { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+  #stack {
+    position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%);
+    width: min(17%, 160px);
+  }
+  #stack .tbrick {
+    position: absolute; left: 0; width: 100%; height: 5.4vh;
+    transition: transform .45s cubic-bezier(.3,.7,.4,1.4), opacity .5s;
+  }
+  #stack .tbrick .brick-face { width: 100%; height: 100%; }
+  #stack .tbrick.new { transform: translateY(-52vh) rotate(-8deg); }
+  #stack .tbrick.smash { transform: translate(38vw, 30vh) rotate(90deg); opacity: 0; }
+  #tower-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 8%; }
+  .tower-btn {
+    position: absolute; bottom: 4%;
+    width: clamp(80px, 17vh, 150px); height: clamp(80px, 17vh, 150px);
+    border: 7px solid var(--ink); border-radius: 26px; background: #fff;
+    box-shadow: 0 8px 0 var(--ink);
+    font-size: clamp(38px, 9vh, 80px); line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tower-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--ink); }
+  #addBrick { left: 4%; background: var(--yellow); }
+  #smashBrick { right: 4%; }
+
+  /* ---------- Effects ---------- */
+  .wiggle { animation: shake .4s; }
+  @keyframes drop { 0% { transform: translate(-40%, -260%) rotate(-40deg); } 100% { transform: none; } }
+  @keyframes shake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-7deg); } 50% { transform: rotate(6deg); } 75% { transform: rotate(-4deg); } }
+  @keyframes pop { 0% { transform: scale(.3); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+  @keyframes idle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3%); } }
+
+  .confetti { position: fixed; top: -20px; width: 14px; height: 22px; border-radius: 3px; pointer-events: none; z-index: 50; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  #trophy {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55);
+  }
+  #trophy.show { display: flex; }
+  #trophy .cup { font-size: 42vh; line-height: 1; animation: pop .8s; }
+  #trophy .big { font-size: clamp(36px, 9vh, 84px); font-weight: 900; color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
+</style>
+</head>
+<body>
+
+<!-- ============ MENU ============ -->
+<section id="menu" class="screen active">
+  <a href="../../" class="icon-btn corner" aria-label="All games">🏠</a>
+  <h1>Build It!</h1>
+  <div class="menu-row">
+    <button class="big-choice" data-mode="add" aria-label="Load it, adding">
+      <div class="pic" id="picAdd"></div>
+      <div class="sum">3 + 1</div>
+      <div class="lbl">Load it!</div>
+    </button>
+    <button class="big-choice" data-mode="sub" aria-label="Dump it, taking away">
+      <div class="pic" id="picSub"></div>
+      <div class="sum">5 − 2</div>
+      <div class="lbl">Dump it!</div>
+    </button>
+    <button class="big-choice" data-mode="tower" aria-label="Build a tower">
+      <div class="pic" id="picTower"></div>
+      <div class="sum">🧱🧱🧱</div>
+      <div class="lbl">Build a tower!</div>
+    </button>
+  </div>
+  <div class="parent">
+    Up to:
+    <button data-max="5">5</button>
+    <button data-max="10">10</button>
+    <span class="gap"></span>
+    Answer:
+    <button data-pick="0">Count</button>
+    <button data-pick="1">Count + pick</button>
+    <span class="gap"></span>
+    <button data-eq="1">Show 3 + 1 = 4</button>
+  </div>
+</section>
+
+<!-- ============ ADD / SUB (same scene, different machines) ============ -->
+<section id="quiz" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" data-home aria-label="Menu">🏠</button>
+    <button class="prompt" id="quizPrompt" aria-label="Say it again">
+      <span class="speaker">🔊</span><span class="sign" id="quizSign">?</span>
+    </button>
+    <div class="stars" data-stars></div>
+  </header>
+  <div class="site" id="site">
+    <div class="equation" id="equation"></div>
+    <div class="machine" id="digger"></div>
+    <div class="machine" id="truck">
+      <div id="truckArt"></div>
+      <div id="bed"></div>
+    </div>
+    <div id="hook"></div>
+    <div id="pallet-wrap">
+      <div id="bricks"></div>
+      <div class="pallet"></div>
+    </div>
+    <div id="picks"></div>
+  </div>
+</section>
+
+<!-- ============ TOWER ============ -->
+<section id="tower" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" data-home aria-label="Menu">🏠</button>
+    <button class="prompt" id="towerPrompt" aria-label="Say it again">
+      <span class="speaker">🔊</span><span class="sign" id="towerSign">0</span>
+    </button>
+    <div class="stars"><span id="towerBest"></span></div>
+  </header>
+  <div class="site">
+    <div id="tower-area">
+      <div id="stack"></div>
+      <button class="tower-btn" id="addBrick" aria-label="Add a brick">🧱</button>
+      <button class="tower-btn" id="smashBrick" aria-label="Take one off">💥</button>
+    </div>
+  </div>
+</section>
+
+<div id="trophy">
+  <div class="cup" id="trophyCup">🏆</div>
+  <div class="big" id="trophyText">Super builder!</div>
+</div>
+
+<script src="/static/kid-voice.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- Helpers ---------------- */
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
+  function rand(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+    return arr;
+  }
+
+  // Every round bumps `gen`; delayed callbacks from an old round check it and bail out.
+  var gen = 0;
+  function later(ms, fn) { var g = gen; setTimeout(function () { if (g === gen) fn(); }, ms); }
+
+  var settings = { max: 5, pick: false, eq: false };
+  try {
+    var m = parseInt(localStorage.getItem("buildIt.max"), 10);
+    if (m) settings.max = m;
+    settings.pick = localStorage.getItem("buildIt.pick") === "1";
+    settings.eq = localStorage.getItem("buildIt.eq") === "1";
+  } catch (e) {}
+
+  /* ---------------- Drawing ---------------- */
+  var INK = "#1d1d1d";
+  var S = ' stroke="' + INK + '" stroke-width="5" stroke-linejoin="round"';
+
+  function diggerSVG() {
+    return '<svg viewBox="0 0 300 200" aria-hidden="true">' +
+      '<g class="arm">' +
+        '<path d="M148 124 L206 54 L226 70 L168 138 Z" fill="#f6b81a"' + S + '/>' +
+        '<path d="M212 48 L268 92 L252 110 L198 68 Z" fill="#f6b81a"' + S + '/>' +
+        '<path d="M238 92 L292 106 Q288 132 266 142 Q244 150 234 132 Z" fill="#cfd3d8"' + S + '/>' +
+        '<path d="M244 143 l6 10 M262 147 l3 11 M280 136 l6 9" stroke="' + INK + '" stroke-width="5" stroke-linecap="round"/>' +
+        '<circle cx="150" cy="122" r="9" fill="' + INK + '"/>' +
+      '</g>' +
+      '<rect x="56" y="98" width="112" height="50" rx="8" fill="#e0a413"' + S + '/>' +
+      '<path d="M92 98 V56 Q92 48 100 48 L152 48 Q160 48 160 56 V98 Z" fill="#f6b81a"' + S + '/>' +
+      '<rect x="102" y="58" width="48" height="30" rx="4" fill="#cdefff" stroke="' + INK + '" stroke-width="4"/>' +
+      '<rect x="22" y="150" width="176" height="40" rx="20" fill="#4b4b55"' + S + '/>' +
+      '<circle cx="52" cy="170" r="12" fill="#cfd3d8" stroke="' + INK + '" stroke-width="4"/>' +
+      '<circle cx="110" cy="170" r="9" fill="#cfd3d8" stroke="' + INK + '" stroke-width="4"/>' +
+      '<circle cx="168" cy="170" r="12" fill="#cfd3d8" stroke="' + INK + '" stroke-width="4"/>' +
+      '</svg>';
+  }
+
+  // Bed interior (for #bed placement): x 30..200, y 60..132 of a 0 0 340 200 box.
+  function truckSVG() {
+    return '<svg viewBox="0 0 340 200" aria-hidden="true">' +
+      '<ellipse cx="170" cy="192" rx="150" ry="7" fill="rgba(0,0,0,.25)"/>' +
+      '<path d="M18 56 H212 V140 H18 Z" fill="#d94f2b"' + S + '/>' +
+      '<rect x="30" y="60" width="170" height="72" fill="#a83a1d"/>' +
+      '<rect x="24" y="136" width="300" height="22" rx="6" fill="#4b4b55"' + S + '/>' +
+      '<path d="M216 136 V74 Q216 66 224 66 L286 66 Q296 66 302 76 L322 110 Q328 118 328 128 V136 Z" fill="#d94f2b"' + S + '/>' +
+      '<rect x="232" y="76" width="54" height="34" rx="4" fill="#cdefff" stroke="' + INK + '" stroke-width="4"/>' +
+      '<circle cx="322" cy="124" r="6" fill="#fff6a8" stroke="' + INK + '" stroke-width="3"/>' +
+      '<g><circle cx="86" cy="160" r="28" fill="' + INK + '"/><circle cx="86" cy="160" r="12" fill="#cfcfcf"/></g>' +
+      '<g><circle cx="262" cy="160" r="28" fill="' + INK + '"/><circle cx="262" cy="160" r="12" fill="#cfcfcf"/></g>' +
+      '</svg>';
+  }
+
+  function hookSVG() {
+    return '<svg viewBox="0 0 120 200" aria-hidden="true">' +
+      '<rect x="56" y="0" width="8" height="120" fill="' + INK + '"/>' +
+      '<rect x="34" y="118" width="52" height="18" rx="5" fill="#f6b81a"' + S + '/>' +
+      '<path d="M60 136 V156 Q60 178 40 178 Q22 178 22 160" fill="none" stroke="' + INK + '" stroke-width="10" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+
+  function brickStackSVG() {
+    var face = function (x, y) {
+      return '<rect x="' + x + '" y="' + y + '" width="90" height="42" rx="5" fill="#c0563a"' + S + '/>' +
+        '<path d="M' + (x + 4) + ' ' + (y + 21) + ' h82" stroke="rgba(0,0,0,.35)" stroke-width="5"/>';
+    };
+    return '<svg viewBox="0 0 200 160" aria-hidden="true">' +
+      face(55, 104) + face(10, 56) + face(100, 56) + face(55, 8) + '</svg>';
+  }
+
+  function rockSVG() {
+    return '<svg viewBox="0 0 100 80" aria-hidden="true">' +
+      '<path d="M12 55 Q2 36 22 21 Q41 5 65 13 Q92 22 93 46 Q94 69 67 75 Q33 80 12 55 Z" fill="#8d9199"' + S + '/>' +
+      '<path d="M28 33 Q44 25 58 31" fill="none" stroke="#6f737a" stroke-width="5" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+
+  /* ---------------- Sound ---------------- */
+  var ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (ac.state === "suspended") ac.resume();
+    return ac;
+  }
+  function tone(type, freq, start, dur, vol, endFreq) {
+    var a = audio(); if (!a) return;
+    var t = a.currentTime + start;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  // Filtered noise: gravel, thuds and crashes.
+  function noise(start, dur, vol, freq, type) {
+    var a = audio(); if (!a) return;
+    var t = a.currentTime + start;
+    var len = Math.ceil(a.sampleRate * dur);
+    var buf = a.createBuffer(1, len, a.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    var src = a.createBufferSource(); src.buffer = buf;
+    var f = a.createBiquadFilter(); f.type = type || "lowpass"; f.frequency.value = freq || 1200;
+    var g = a.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(a.destination);
+    src.start(t); src.stop(t + dur);
+  }
+  function tumble(n) {  // rocks landing
+    for (var i = 0; i < (n || 3); i++) noise(i * 0.09, 0.22, 0.3, 1400);
+  }
+  function clunk() { noise(0, 0.18, 0.35, 500); tone("sine", 150, 0, 0.16, 0.25, 90); }
+  function crash() { noise(0, 0.6, 0.4, 900); tone("sine", 120, 0, 0.5, 0.3, 60); }
+  function whirr() {
+    var a = audio(); if (!a) return;
+    var t = a.currentTime;
+    var o = a.createOscillator(), g = a.createGain(), lfo = a.createOscillator(), lg = a.createGain();
+    o.type = "sawtooth"; o.frequency.value = 180;
+    lfo.frequency.value = 9; lg.gain.value = 22;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.1, t + 0.15);
+    g.gain.setValueAtTime(0.1, t + 0.9);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+    lfo.connect(lg); lg.connect(o.frequency);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); lfo.start(t); o.stop(t + 1.3); lfo.stop(t + 1.3);
+  }
+  function beeps() { for (var i = 0; i < 3; i++) tone("square", 1000, i * 0.32, 0.16, 0.12); }
+  function vroom() {
+    var a = audio(); if (!a) return;
+    var t = a.currentTime;
+    var o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(50, t);
+    o.frequency.exponentialRampToValueAtTime(190, t + 0.8);
+    o.frequency.exponentialRampToValueAtTime(130, t + 1.6);
+    f.type = "lowpass"; f.frequency.value = 900;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.28, t + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.7);
+    o.connect(f); f.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + 1.8);
+  }
+  function honk() {
+    tone("square", 392, 0, 0.16, 0.12); tone("square", 494, 0, 0.16, 0.08);
+    tone("square", 392, 0.22, 0.16, 0.12); tone("square", 494, 0.22, 0.16, 0.08);
+  }
+  function pop(step) { tone("sine", 440 + step * 55, 0, 0.18, 0.28, 880 + step * 80); }
+  function fanfare() {
+    [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, i * 0.13, i === 3 ? 0.5 : 0.16, 0.25); });
+  }
+
+  /* ---------------- Voice ---------------- */
+  KidVoice.init(audio);
+  var speak = KidVoice.speak;
+  (function preload() {
+    var list = ["How many now?", "How many are left?", "Tap the rocks to count!", "Tap the bricks to count!",
+      "Let's count again!", "Yes!", "That's right!", "Wow!", "Great building!", "Tap to add a brick!",
+      "You are a super builder! Hooray!"];
+    for (var n = 1; n <= 15; n++) list.push(String(n));
+    for (n = 1; n <= 10; n++) list.push(n + (n === 1 ? " rock" : " rocks"), n + (n === 1 ? " brick" : " bricks"));
+    for (n = 1; n <= 3; n++) list.push("and " + n + " more", "take away " + n);
+    KidVoice.preload(list);
+  })();
+
+  /* ---------------- Effects ---------------- */
+  function confetti() {
+    var cols = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fb8c00", "#ec407a", "#fff"];
+    for (var i = 0; i < 45; i++) {
+      var c = document.createElement("div");
+      c.className = "confetti";
+      c.style.left = Math.random() * 100 + "vw";
+      c.style.background = cols[i % cols.length];
+      c.style.animationDuration = 1.4 + Math.random() * 1.4 + "s";
+      c.style.animationDelay = Math.random() * 0.3 + "s";
+      document.body.appendChild(c);
+      (function (el) { setTimeout(function () { el.remove(); }, 3300); })(c);
+    }
+  }
+  function flash(cls, el) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+  var stars = 0;
+  function renderStars() {
+    $$("[data-stars]").forEach(function (box) {
+      var h = "";
+      for (var i = 0; i < 5; i++) h += '<span class="' + (i < stars ? "got" : "") + '">★</span>';
+      box.innerHTML = h;
+    });
+  }
+  function trophy(cup, text, spoken, next) {
+    var t = $("#trophy");
+    $("#trophyCup").textContent = cup;
+    $("#trophyText").textContent = text;
+    t.classList.add("show");
+    fanfare(); confetti();
+    speak(spoken);
+    var done = false;
+    var close = function () {
+      if (done) return; done = true;
+      t.classList.remove("show"); t.removeEventListener("pointerdown", close);
+      next();
+    };
+    later(4000, function () { t.addEventListener("pointerdown", close); });
+    later(7000, close);
+  }
+
+  /* ---------------- Screens ---------------- */
+  function show(id) {
+    gen++;
+    KidVoice.stop();
+    $("#trophy").classList.remove("show");
+    $$(".screen").forEach(function (s) { s.classList.toggle("active", s.id === id); });
+  }
+  function goFullscreen() {
+    var d = document.documentElement;
+    var req = d.requestFullscreen || d.webkitRequestFullscreen;
+    if (req && !document.fullscreenElement && !document.webkitFullscreenElement) {
+      try {
+        var p = req.call(d);
+        if (p && p.then) p.then(function () {
+          if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () {});
+        }).catch(function () {});
+      } catch (e) {}
+    }
+  }
+
+  /* ---------------- Adding and taking away ----------------
+     Both modes share one flow: show a quantity, change it, then count what's
+     there. Counting is always safe; picking the total is an optional extra step. */
+  var quiz = { kind: "add", a: 0, b: 0, total: 0, counted: 0, locked: true, items: [] };
+
+  function makeItem(cls, inner) {
+    var el = document.createElement("div");
+    el.className = "item " + cls;
+    el.innerHTML = inner + '<span class="badge"></span>';
+    el.addEventListener("pointerdown", function () { itemTap(el); });
+    return el;
+  }
+
+  function itemSize(count) {
+    // Keep one row up to 5, two rows above that.
+    var cols = count <= 5 ? count : Math.ceil(count / 2);
+    return (100 / cols - 5) + "%";
+  }
+
+  function newRound(kind) {
+    gen++;
+    quiz.kind = kind;
+    quiz.counted = 0;
+    quiz.locked = true;
+    quiz.items = [];
+    var max = settings.max;
+
+    $("#picks").classList.remove("on");
+    $("#picks").innerHTML = "";
+    $("#quizSign").textContent = "?";
+    $("#truck").classList.remove("away");
+    $("#hook").style.transform = "translate(-50%, 0)";
+    $("#bed").innerHTML = "";
+    $("#bricks").innerHTML = "";
+
+    var adding = kind === "add";
+    $("#digger").style.display = adding ? "" : "none";
+    $("#truck").style.display = adding ? "" : "none";
+    $("#bed").style.display = adding ? "" : "none";
+    $("#hook").style.display = adding ? "none" : "";
+    $("#pallet-wrap").style.display = adding ? "none" : "";
+
+    if (adding) {
+      quiz.a = rand(1, max - 1);
+      quiz.b = rand(1, Math.min(3, max - quiz.a));
+      quiz.total = quiz.a + quiz.b;
+      startAdd();
+    } else {
+      quiz.a = rand(2, max);
+      quiz.b = rand(1, Math.min(3, quiz.a - 1));
+      quiz.total = quiz.a - quiz.b;
+      startSub();
+    }
+    showEquation(false);
+  }
+
+  function showEquation(withAnswer) {
+    var eq = $("#equation");
+    eq.classList.toggle("on", settings.eq);
+    if (!settings.eq) return;
+    var sign = quiz.kind === "add" ? " + " : " − ";
+    eq.textContent = quiz.a + sign + quiz.b + " = " + (withAnswer ? quiz.total : "?");
+  }
+
+  function startAdd() {
+    var bed = $("#bed");
+    var size = itemSize(quiz.total);
+    var i;
+    for (i = 0; i < quiz.a; i++) {
+      var r = makeItem("rock", rockSVG());
+      r.style.width = size;
+      bed.appendChild(r);
+      quiz.items.push(r);
+    }
+    speak([quiz.a + (quiz.a === 1 ? " rock" : " rocks"), "and " + quiz.b + " more"]);
+    later(1400, function () {
+      $("#digger").classList.add("tipping");
+      whirr();
+      later(500, function () {
+        tumble(quiz.b);
+        for (var j = 0; j < quiz.b; j++) {
+          (function (j) {
+            later(j * 220, function () {
+              var r = makeItem("rock", rockSVG());
+              r.style.width = size;
+              r.classList.add("drop");
+              bed.appendChild(r);
+              quiz.items.push(r);
+              clunk();
+            });
+          })(j);
+        }
+        later(quiz.b * 220 + 500, function () { $("#digger").classList.remove("tipping"); askCount(); });
+      });
+    });
+  }
+
+  function startSub() {
+    var box = $("#bricks");
+    var size = itemSize(quiz.a);
+    // Keep the pallet only as wide as the bricks standing on it.
+    $("#pallet-wrap").style.width = Math.min(72, 15 * Math.min(quiz.a, 5) + 10) + "%";
+    var all = [];
+    for (var i = 0; i < quiz.a; i++) {
+      var b = makeItem("brick", '<div class="brick-face"></div>');
+      b.style.width = size;
+      box.appendChild(b);
+      all.push(b);
+    }
+    speak([quiz.a + (quiz.a === 1 ? " brick" : " bricks"), "take away " + quiz.b]);
+    var taken = all.slice(-quiz.b);
+    quiz.items = all.slice(0, quiz.a - quiz.b);
+    later(1500, function () {
+      whirr();
+      $("#hook").style.transform = "translate(-50%, " + Math.round(window.innerHeight * 0.42) + "px)";
+      later(1100, function () {
+        clunk();
+        taken.forEach(function (el) { el.classList.add("lifted"); });
+        $("#hook").style.transform = "translate(-50%, -30vh)";
+        later(1100, function () {
+          taken.forEach(function (el) { el.remove(); });
+          askCount();
+        });
+      });
+    });
+  }
+
+  function askCount() {
+    quiz.locked = false;
+    $("#quizSign").textContent = "?";
+    flash("pulse", $("#quizSign"));
+    speak(quiz.kind === "add" ? "How many now?" : "How many are left?");
+  }
+
+  function itemTap(el) {
+    if (quiz.locked) return;
+    if (el.classList.contains("counted")) { flash("wiggle", el); return; }
+    quiz.counted++;
+    el.classList.add("counted");
+    $(".badge", el).textContent = quiz.counted;
+    pop(quiz.counted);
+    speak(String(quiz.counted));
+    var sign = $("#quizSign");
+    sign.textContent = quiz.counted;
+    flash("pulse", sign);
+    if (quiz.counted === quiz.total) {
+      quiz.locked = true;
+      later(900, settings.pick ? askPick : celebrate);
+    }
+  }
+
+  function askPick() {
+    var opts = [quiz.total];
+    while (opts.length < 3) {
+      var d = quiz.total + rand(-2, 2);
+      if (d >= 1 && d <= settings.max + 2 && opts.indexOf(d) < 0) opts.push(d);
+    }
+    shuffle(opts);
+    var box = $("#picks");
+    box.innerHTML = "";
+    opts.forEach(function (n) {
+      var b = document.createElement("button");
+      b.className = "pick";
+      b.textContent = n;
+      b.addEventListener("pointerdown", function () { pickTap(b, n); });
+      box.appendChild(b);
+    });
+    box.classList.add("on");
+    quiz.locked = false;
+    speak("How many now?");
+  }
+
+  function pickTap(btn, n) {
+    if (quiz.locked) return;
+    if (n === quiz.total) {
+      quiz.locked = true;
+      celebrate();
+    } else {
+      quiz.locked = true;
+      flash("wrong", btn);
+      honk();
+      speak("Let's count again!");
+      later(1200, autoCount);
+    }
+  }
+
+  // Counts the items out loud, lighting each one, then lets them answer again.
+  function autoCount() {
+    quiz.items.forEach(function (el, i) {
+      later(i * 800, function () {
+        $$(".item", $("#site")).forEach(function (o) { o.classList.remove("lit"); });
+        el.classList.add("lit");
+        $("#quizSign").textContent = i + 1;
+        pop(i + 1);
+        speak(String(i + 1));
+      });
+    });
+    later(quiz.items.length * 800 + 400, function () {
+      $$(".item", $("#site")).forEach(function (o) { o.classList.remove("lit"); });
+      quiz.locked = false;
+    });
+  }
+
+  function celebrate() {
+    $("#picks").classList.remove("on");
+    $("#quizSign").textContent = quiz.total;
+    flash("pulse", $("#quizSign"));
+    showEquation(true);
+    fanfare(); confetti();
+    speak(["That's right!", String(quiz.total)]);
+    if (quiz.kind === "add") later(900, function () { beeps(); later(600, function () { vroom(); $("#truck").classList.add("away"); }); });
+    stars++;
+    renderStars();
+    var kind = quiz.kind;
+    if (stars < 5) { later(3200, function () { newRound(kind); }); return; }
+    later(2800, function () {
+      trophy("🏆", "Super builder!", "You are a super builder! Hooray!", function () {
+        stars = 0; renderStars(); newRound(kind);
+      });
+    });
+  }
+
+  $("#quizPrompt").addEventListener("pointerdown", function () {
+    flash("pulse", $("#quizSign"));
+    if (quiz.counted === 0) speak(quiz.kind === "add" ? "Tap the rocks to count!" : "Tap the bricks to count!");
+    else if (quiz.counted < quiz.total) speak([String(quiz.counted), "Keep counting!"]);
+    else speak(quiz.kind === "add" ? "How many now?" : "How many are left?");
+  });
+
+  /* ---------------- Tower (free play) ---------------- */
+  var TOWER_MAX = 12;  // as many as fit above the buttons
+  var tower = { n: 0, best: 0 };
+  try { tower.best = parseInt(localStorage.getItem("buildIt.best"), 10) || 0; } catch (e) {}
+
+  function towerStart() {
+    gen++;
+    tower.n = 0;
+    $("#stack").innerHTML = "";
+    renderTower();
+    later(400, function () { speak("Tap to add a brick!"); });
+  }
+
+  function renderTower() {
+    $("#towerSign").textContent = tower.n;
+    $("#towerBest").textContent = tower.best ? "🏆 " + tower.best : "";
+  }
+
+  function addTowerBrick() {
+    if (tower.n >= TOWER_MAX) { speak(["Wow!", String(tower.n)]); return; }
+    tower.n++;
+    var b = document.createElement("div");
+    b.className = "tbrick new";
+    b.innerHTML = '<div class="brick-face"></div>';
+    b.style.bottom = (tower.n - 1) * 5.4 + "vh";
+    b.style.transform = "translateY(-52vh) rotate(-8deg) translateX(" + rand(-14, 14) + "px)";
+    $("#stack").appendChild(b);
+    void b.offsetWidth;
+    b.classList.remove("new");
+    b.style.transform = "translateX(" + rand(-6, 6) + "px)";
+    clunk();
+    speak(String(tower.n));
+    if (tower.n > tower.best) {
+      tower.best = tower.n;
+      try { localStorage.setItem("buildIt.best", tower.best); } catch (e) {}
+    }
+    renderTower();
+    if (tower.n === TOWER_MAX) { later(700, function () { fanfare(); confetti(); speak(["Wow!", "Great building!"]); }); }
+  }
+
+  function smashTowerBrick() {
+    var bricks = $$(".tbrick", $("#stack"));
+    if (!bricks.length) return;
+    var top = bricks[bricks.length - 1];
+    top.classList.add("smash");
+    setTimeout(function () { top.remove(); }, 600);
+    tower.n--;
+    crash();
+    speak(tower.n === 0 ? "Tap to add a brick!" : String(tower.n));
+    renderTower();
+  }
+
+  $("#addBrick").addEventListener("pointerdown", function (e) { e.stopPropagation(); addTowerBrick(); });
+  $("#smashBrick").addEventListener("pointerdown", function (e) { e.stopPropagation(); smashTowerBrick(); });
+  $("#tower-area").addEventListener("pointerdown", addTowerBrick);
+  $("#towerPrompt").addEventListener("pointerdown", function () {
+    speak(tower.n === 0 ? "Tap to add a brick!" : String(tower.n));
+  });
+
+  /* ---------------- Menu wiring ---------------- */
+  function renderMenu() {
+    $$("[data-max]").forEach(function (b) { b.classList.toggle("on", +b.getAttribute("data-max") === settings.max); });
+    $$("[data-pick]").forEach(function (b) { b.classList.toggle("on", (b.getAttribute("data-pick") === "1") === settings.pick); });
+    $$("[data-eq]").forEach(function (b) { b.classList.toggle("on", settings.eq); });
+  }
+  $$("[data-max]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      settings.max = +b.getAttribute("data-max");
+      try { localStorage.setItem("buildIt.max", settings.max); } catch (e) {}
+      renderMenu();
+    });
+  });
+  $$("[data-pick]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      settings.pick = b.getAttribute("data-pick") === "1";
+      try { localStorage.setItem("buildIt.pick", settings.pick ? "1" : "0"); } catch (e) {}
+      renderMenu();
+    });
+  });
+  $$("[data-eq]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      settings.eq = !settings.eq;
+      try { localStorage.setItem("buildIt.eq", settings.eq ? "1" : "0"); } catch (e) {}
+      renderMenu();
+    });
+  });
+
+  $("#picAdd").innerHTML = truckSVG();
+  $("#picSub").innerHTML = hookSVG() + brickStackSVG();
+  $("#picTower").innerHTML = brickStackSVG();
+  $("#digger").innerHTML = diggerSVG();
+  $("#truckArt").innerHTML = truckSVG();
+  $("#hook").innerHTML = hookSVG();
+  renderMenu();
+
+  $$(".big-choice").forEach(function (b) {
+    b.addEventListener("click", function () {
+      audio();
+      goFullscreen();
+      var mode = b.getAttribute("data-mode");
+      if (mode === "tower") { show("tower"); towerStart(); }
+      else { show("quiz"); stars = 0; renderStars(); newRound(mode); }
+    });
+  });
+  $$("[data-home]").forEach(function (b) {
+    b.addEventListener("click", function (e) { e.stopPropagation(); show("menu"); });
+  });
+
+  document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  renderStars();
+  renderTower();
+})();
+</script>
+</body>
+</html>

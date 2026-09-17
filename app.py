@@ -19,6 +19,7 @@ PORT = int(os.environ.get("PORT", 8080))
 GAMES = [
     {"slug": "number-race", "name": "Number Race", "icon": "🏎️"},
     {"slug": "rescue-letters", "name": "Rescue Letters", "icon": "🚒"},
+    {"slug": "build-it", "name": "Build It!", "icon": "🚧"},
 ]
 
 app = Flask(__name__)

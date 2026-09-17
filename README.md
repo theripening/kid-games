@@ -9,6 +9,7 @@ to lose.
 |---|---|
 | **Number Race** (`games/number-race/`) | Recognising numerals 1–20, and counting |
 | **Rescue Letters** (`games/rescue-letters/`) | Recognising letters A–Z, upper or lower case |
+| **Build It!** (`games/build-it/`) | Adding and taking away, as loads of rocks and bricks |
 
 Each game is one self-contained `index.html` with no internet dependencies.
 
@@ -36,7 +37,19 @@ letters, and the right one drives off with lights and siren. *Letter Garage*:
 A–F / A–M / A–Z and upper or lower case, plus **🔈 Test voice** to hear every
 letter on the device itself.
 
-Both games give a star per correct answer and a trophy every five.
+**Build It!** — *Load it!*: rocks sit in a dump truck, the digger tips in more,
+and the child counts the new total by tapping. *Dump it!*: a crane lifts bricks
+off a pallet, and they count what's left. *Build a tower!*: free play, stacking
+bricks while the voice counts up and the wrecking ball counts down.
+
+Arithmetic here is deliberately concrete — "three rocks and one more", counted
+by tapping — because symbolic sums are beyond a three-year-old. Menu settings
+pick totals up to 5 or 10, counting alone or counting then picking the total
+from three signs, and an off-by-default `3 + 1 = 4` line for when they're older.
+Totals never exceed the chosen maximum, and taking away always leaves at least
+one brick.
+
+Each game gives a star per correct answer and a trophy every five.
 
 ## The voice
 
