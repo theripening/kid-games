@@ -53,7 +53,9 @@ one brick.
 **Shape Train** — *Make a picture!*: a dotted outline of a house or a rocket
 fills in shape by shape as the child picks the right piece from the tray.
 *Load it!*: the named shape gets loaded into the train, which whistles and
-leaves. Menu settings pick the shape tier and whether pieces are tilted.
+leaves. *Count corners!*: tap each corner of a shape to count it out loud —
+"six corners, it's a hexagon!" — which is how the harder names are built.
+Menu settings pick the shape tier and whether pieces are tilted.
 
 Shapes are tiered by what a child can actually name, not by how they look:
 
@@ -63,8 +65,9 @@ Shapes are tiered by what a child can actually name, not by how they look:
 | 2 | + rectangle, oval, half circle, diamond | four |
 | 3 | + pentagon, hexagon, octagon | five and up |
 
-Named rounds only use the current tier, and a picture is only offered when
-every shape it needs is in that tier — so the same game keeps working for
+Named rounds only use the current tier, a picture is only offered when every
+shape it needs is in that tier, and corner counting only offers shapes that
+have corners — so the same game keeps working for
 years. Two rules matter in the code: the prompt shape is drawn plain white and
 the tray pieces get unrelated colours, so the answer can never be found by
 matching colour; and the **Tilt them** setting rotates pieces, so a triangle

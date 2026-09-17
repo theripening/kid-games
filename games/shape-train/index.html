@@ -42,9 +42,9 @@
     color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
     text-shadow: 0 6px 0 rgba(0,0,0,.2);
   }
-  .menu-row { display: flex; gap: 4vw; flex-wrap: wrap; justify-content: center; padding: 0 16px; }
+  .menu-row { display: flex; gap: 2.5vw; flex-wrap: wrap; justify-content: center; padding: 0 16px; }
   .big-choice {
-    width: clamp(220px, 34vw, 400px); height: clamp(180px, 44vh, 340px);
+    width: clamp(190px, 28vw, 340px); height: clamp(170px, 42vh, 320px);
     background: #fff; border: 8px solid var(--ink); border-radius: 34px;
     box-shadow: 0 10px 0 var(--ink);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
@@ -53,6 +53,7 @@
   .big-choice:active { transform: translateY(8px); box-shadow: 0 2px 0 var(--ink); }
   .big-choice .pic { width: 100%; height: 66%; display: flex; align-items: center; justify-content: center; gap: 3%; }
   .big-choice .pic svg { height: 100%; width: auto; max-width: 31%; overflow: visible; }
+  #picLoad svg, #picCorners svg { max-width: 100%; }
   .big-choice .lbl { font-size: clamp(24px, 5.5vh, 46px); font-weight: 900; }
 
   .parent {
@@ -94,6 +95,7 @@
   .prompt .speaker { font-size: clamp(24px, 5.5vh, 46px); }
   .prompt .sign { height: 80%; display: flex; align-items: center; }
   .prompt .sign svg { height: 100%; width: auto; overflow: visible; }
+  .prompt .sign.num { font-size: clamp(40px, 10vh, 86px); font-weight: 900; min-width: 1.2em; justify-content: center; }
   .prompt .sign.pulse { animation: pulse .5s; }
   .stars { display: flex; gap: 4px; font-size: clamp(24px, 6vh, 50px); line-height: 1; min-width: clamp(56px, 11vh, 90px); justify-content: flex-end; }
   .stars span { color: rgba(0,0,0,.18); transition: color .3s; }
@@ -146,6 +148,22 @@
   .crate.wrong { animation: shake .5s; }
   .crate.loaded { opacity: 0; }
 
+  /* ---------- Count the corners ---------- */
+  #cornerScreen .site { flex: 1; display: flex; align-items: center; justify-content: center; background: linear-gradient(var(--sky) 0 76%, var(--grass) 76% 100%); }
+  #cornerStage { position: relative; width: min(62vh, 62vw); height: min(62vh, 62vw); }
+  #cornerStage > svg { width: 100%; height: 100%; overflow: visible; }
+  .cdot {
+    position: absolute; width: 15%; height: 15%; padding: 0;
+    transform: translate(-50%, -50%);
+    border: 5px solid var(--ink); border-radius: 50%; background: #fff;
+    font-size: min(5.5vh, 5.5vw); font-weight: 900; line-height: 1; color: transparent;
+    display: flex; align-items: center; justify-content: center;
+    animation: tapme 1.3s ease-in-out infinite;
+  }
+  .cdot.counted { background: var(--gold); color: var(--ink); animation: pop .45s; }
+  .cdot.wiggle { animation: shake .4s; }
+  @keyframes tapme { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.18); } }
+
   /* ---------- Effects ---------- */
   @keyframes glow { 0%,100% { opacity: .45; transform: scale(1); } 50% { opacity: 1; transform: scale(1.07); } }
   @keyframes pop { 0% { transform: scale(.4); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
@@ -179,6 +197,10 @@
     <button class="big-choice" data-mode="load" aria-label="Load the train">
       <div class="pic" id="picLoad"></div>
       <div class="lbl">Load it!</div>
+    </button>
+    <button class="big-choice" data-mode="corners" aria-label="Count the corners">
+      <div class="pic" id="picCorners"></div>
+      <div class="lbl">Count corners!</div>
     </button>
   </div>
   <div class="parent">
@@ -222,6 +244,20 @@
   </div>
 </section>
 
+<!-- ============ COUNT THE CORNERS ============ -->
+<section id="cornerScreen" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" data-home aria-label="Menu">🏠</button>
+    <button class="prompt" id="cornerPrompt" aria-label="Say it again">
+      <span class="speaker">🔊</span><span class="sign num" id="cornerSign">?</span>
+    </button>
+    <div class="stars" data-stars></div>
+  </header>
+  <div class="site">
+    <div id="cornerStage"></div>
+  </div>
+</section>
+
 <div id="trophy">
   <div class="cup">🏆</div>
   <div class="big" id="trophyText">Shape star!</div>
@@ -256,14 +292,18 @@
      Tier 1 is what a three-year-old can name; tier 2 adds the ones that come
      around four; tier 3 the side-counting ones for later. Pictures only appear
      when every shape they need is in the current tier. */
-  function regular(n, startDeg, r) {
+  function regularPoints(n, startDeg, r) {
     var pts = [];
     for (var i = 0; i < n; i++) {
       var a = (startDeg + i * 360 / n) * Math.PI / 180;
-      pts.push((50 + r * Math.cos(a)).toFixed(1) + " " + (50 + r * Math.sin(a)).toFixed(1));
+      pts.push([+(50 + r * Math.cos(a)).toFixed(1), +(50 + r * Math.sin(a)).toFixed(1)]);
     }
-    return '<path d="M' + pts.join(" L") + ' Z"/>';
+    return pts;
   }
+  function pathFrom(pts) {
+    return '<path d="M' + pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L") + ' Z"/>';
+  }
+  function regular(n, startDeg, r) { return pathFrom(regularPoints(n, startDeg, r)); }
   function starPath() {
     var pts = [];
     for (var i = 0; i < 10; i++) {
@@ -274,19 +314,24 @@
     return '<path d="M' + pts.join(" L") + ' Z"/>';
   }
 
+  // `corners` lists the vertices for the corner-counting mode; curved shapes have none.
   var SHAPES = {
     circle:    { tier: 1, name: "circle",    d: '<circle cx="50" cy="50" r="45"/>' },
-    square:    { tier: 1, name: "square",    d: '<rect x="6" y="6" width="88" height="88" rx="7"/>' },
-    triangle:  { tier: 1, name: "triangle",  d: '<path d="M50 6 L95 92 L5 92 Z"/>' },
+    square:    { tier: 1, name: "square",    d: '<rect x="6" y="6" width="88" height="88" rx="7"/>',
+                 corners: [[6, 6], [94, 6], [94, 94], [6, 94]] },
+    triangle:  { tier: 1, name: "triangle",  d: '<path d="M50 6 L95 92 L5 92 Z"/>',
+                 corners: [[50, 6], [95, 92], [5, 92]] },
     star:      { tier: 1, name: "star",      d: starPath() },
     heart:     { tier: 1, name: "heart",     d: '<path d="M50 92 C10 64 5 34 24 23 C38 15 50 26 50 35 C50 26 62 15 76 23 C95 34 90 64 50 92 Z"/>' },
-    rectangle: { tier: 2, name: "rectangle", d: '<rect x="2" y="24" width="96" height="52" rx="7"/>' },
+    rectangle: { tier: 2, name: "rectangle", d: '<rect x="2" y="24" width="96" height="52" rx="7"/>',
+                 corners: [[2, 24], [98, 24], [98, 76], [2, 76]] },
     oval:      { tier: 2, name: "oval",      d: '<ellipse cx="50" cy="50" rx="47" ry="31"/>' },
     halfcircle:{ tier: 2, name: "half circle", d: '<path d="M3 73 A47 47 0 0 1 97 73 Z"/>' },
-    diamond:   { tier: 2, name: "diamond",   d: '<path d="M50 4 L96 50 L50 96 L4 50 Z"/>' },
-    pentagon:  { tier: 3, name: "pentagon",  d: regular(5, -90, 46) },
-    hexagon:   { tier: 3, name: "hexagon",   d: regular(6, -90, 46) },
-    octagon:   { tier: 3, name: "octagon",   d: regular(8, -67.5, 46) }
+    diamond:   { tier: 2, name: "diamond",   d: '<path d="M50 4 L96 50 L50 96 L4 50 Z"/>',
+                 corners: [[50, 4], [96, 50], [50, 96], [4, 50]] },
+    pentagon:  { tier: 3, name: "pentagon",  d: regular(5, -90, 46), corners: regularPoints(5, -90, 46) },
+    hexagon:   { tier: 3, name: "hexagon",   d: regular(6, -90, 46), corners: regularPoints(6, -90, 46) },
+    octagon:   { tier: 3, name: "octagon",   d: regular(8, -67.5, 46), corners: regularPoints(8, -67.5, 46) }
   };
   var SHAPE_KEYS = Object.keys(SHAPES);
 
@@ -454,6 +499,7 @@
     src.start(t); src.stop(t + dur);
   }
   function sparkle() { tone("triangle", 880, 0, 0.14, 0.22, 1320); tone("triangle", 1320, 0.1, 0.22, 0.18, 1760); }
+  function pop(step) { tone("sine", 440 + step * 55, 0, 0.18, 0.28, 880 + step * 80); }
   function clunk() { noise(0, 0.16, 0.3, 600); tone("sine", 160, 0, 0.14, 0.22, 90); }
   function chuff() { for (var i = 0; i < 6; i++) noise(i * 0.26, 0.2, 0.22, 700); }
   function whistle() {
@@ -472,10 +518,12 @@
   KidVoice.init(audio);
   var speak = KidVoice.speak;
   (function preload() {
-    var list = ["Yes!", "Let's try again!", "You are a shape star! Hooray!", "Tap the shape that fits!"];
+    var list = ["Yes!", "Let's try again!", "You are a shape star! Hooray!", "Tap the shape that fits!",
+      "Count the corners!", "Keep counting!"];
+    for (var n = 1; n <= 8; n++) list.push(String(n), n + " corners!");
     SHAPE_KEYS.forEach(function (k) {
-      var n = SHAPES[k].name;
-      list.push(n + "!", "Find a " + n + "!", "Find the " + n + "!", "That's a " + n + ".");
+      var nm = SHAPES[k].name;
+      list.push(nm + "!", "Find a " + nm + "!", "Find the " + nm + "!", "That's a " + nm + ".", "It's a " + nm + "!");
     });
     PICTURES.forEach(function (p) { list.push(p.say); });
     KidVoice.preload(list);
@@ -712,12 +760,85 @@
     speak("Find the " + SHAPES[load.target].name + "!");
   });
 
+  /* ---------------- Mode: count the corners ----------------
+     The bridge between counting and the harder shape names: a hexagon is the
+     shape you get after counting six corners. */
+  var corners = { key: "", total: 0, counted: 0, last: "", locked: false };
+
+  function cornerKeys() {
+    return tierKeys().filter(function (k) { return SHAPES[k].corners; });
+  }
+
+  function cornerRound() {
+    gen++;
+    corners.counted = 0;
+    corners.locked = false;
+    var keys = cornerKeys();
+    var key;
+    do { key = pick(keys); } while (key === corners.last && keys.length > 1);
+    corners.last = corners.key = key;
+    var shape = SHAPES[key];
+    corners.total = shape.corners.length;
+
+    var rot = tilt(key);
+    var stage = $("#cornerStage");
+    stage.innerHTML = shapeSVG(key, pick(COLORS), rot);
+    var rad = rot * Math.PI / 180;
+    shape.corners.forEach(function (pt) {
+      // Turn the corner with the shape when tilting is on.
+      var x = 50 + (pt[0] - 50) * Math.cos(rad) - (pt[1] - 50) * Math.sin(rad);
+      var y = 50 + (pt[0] - 50) * Math.sin(rad) + (pt[1] - 50) * Math.cos(rad);
+      var dot = document.createElement("button");
+      dot.className = "cdot";
+      dot.style.left = x + "%";
+      dot.style.top = y + "%";
+      dot.addEventListener("pointerdown", function () { cornerTap(dot); });
+      stage.appendChild(dot);
+    });
+    $("#cornerSign").textContent = "?";
+    later(400, function () { speak("Count the corners!"); });
+  }
+
+  function cornerTap(dot) {
+    if (corners.locked) return;
+    if (dot.classList.contains("counted")) { flash("wiggle", dot); return; }
+    corners.counted++;
+    dot.classList.add("counted");
+    dot.textContent = corners.counted;
+    pop(corners.counted);
+    speak(String(corners.counted));
+    var sign = $("#cornerSign");
+    sign.textContent = corners.counted;
+    flash("pulse", sign);
+    if (corners.counted === corners.total) {
+      corners.locked = true;
+      later(900, function () {
+        speak([corners.total + " corners!", "It's a " + SHAPES[corners.key].name + "!"]);
+        fanfare(); confetti();
+        winRound(cornerRound);
+      });
+    }
+  }
+
+  $("#cornerPrompt").addEventListener("pointerdown", function () {
+    if (corners.counted === 0) speak("Count the corners!");
+    else if (corners.counted < corners.total) speak([String(corners.counted), "Keep counting!"]);
+    else speak("It's a " + SHAPES[corners.key].name + "!");
+  });
+
   /* ---------------- Menu ---------------- */
   function renderMenu() {
     $$("[data-tier]").forEach(function (b) { b.classList.toggle("on", +b.getAttribute("data-tier") === settings.tier); });
     $$("[data-tilt]").forEach(function (b) { b.classList.toggle("on", settings.tilt); });
     $("#picBuild").innerHTML = shapeSVG("triangle", "#e53935", 0) + shapeSVG("square", "#fdd835", 0) + shapeSVG("circle", "#1e88e5", 0);
     $("#picLoad").innerHTML = trainSVG();
+    // A hexagon with numbered corners, showing what the mode is.
+    var hex = SHAPES.hexagon.corners.map(function (p, i) {
+      return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="13" fill="#ffc400" stroke="#1d1d1d" stroke-width="5"/>' +
+        '<text x="' + p[0] + '" y="' + (p[1] + 1) + '" text-anchor="middle" dominant-baseline="central" font-size="16" font-weight="900" font-family="Arial Black, Arial, sans-serif">' + (i + 1) + '</text>';
+    }).join("");
+    $("#picCorners").innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true">' +
+      '<g fill="#43a047" stroke="#1d1d1d" stroke-width="6" stroke-linejoin="round">' + SHAPES.hexagon.d + '</g>' + hex + '</svg>';
   }
   $$("[data-tier]").forEach(function (b) {
     b.addEventListener("click", function () {
@@ -741,7 +862,9 @@
       audio();
       goFullscreen();
       stars = 0; renderStars();
-      if (b.getAttribute("data-mode") === "build") { show("buildScreen"); buildRound(); }
+      var mode = b.getAttribute("data-mode");
+      if (mode === "build") { show("buildScreen"); buildRound(); }
+      else if (mode === "corners") { show("cornerScreen"); cornerRound(); }
       else { show("loadScreen"); loadRound(); }
     });
   });
