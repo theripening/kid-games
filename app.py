@@ -20,6 +20,7 @@ GAMES = [
     {"slug": "number-race", "name": "Number Race", "icon": "🏎️"},
     {"slug": "rescue-letters", "name": "Rescue Letters", "icon": "🚒"},
     {"slug": "build-it", "name": "Build It!", "icon": "🚧"},
+    {"slug": "shape-train", "name": "Shape Train", "icon": "🚂"},
 ]
 
 app = Flask(__name__)

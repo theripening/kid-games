@@ -10,6 +10,7 @@ to lose.
 | **Number Race** (`games/number-race/`) | Recognising numerals 1–20, and counting |
 | **Rescue Letters** (`games/rescue-letters/`) | Recognising letters A–Z, upper or lower case |
 | **Build It!** (`games/build-it/`) | Adding and taking away, as loads of rocks and bricks |
+| **Shape Train** (`games/shape-train/`) | Recognising shapes, by building pictures out of them |
 
 Each game is one self-contained `index.html` with no internet dependencies.
 
@@ -48,6 +49,26 @@ pick totals up to 5 or 10, counting alone or counting then picking the total
 from three signs, and an off-by-default `3 + 1 = 4` line for when they're older.
 Totals never exceed the chosen maximum, and taking away always leaves at least
 one brick.
+
+**Shape Train** — *Make a picture!*: a dotted outline of a house or a rocket
+fills in shape by shape as the child picks the right piece from the tray.
+*Load it!*: the named shape gets loaded into the train, which whistles and
+leaves. Menu settings pick the shape tier and whether pieces are tilted.
+
+Shapes are tiered by what a child can actually name, not by how they look:
+
+| Tier | Shapes | Roughly |
+|---|---|---|
+| 1 | circle, square, triangle, star, heart | three |
+| 2 | + rectangle, oval, half circle, diamond | four |
+| 3 | + pentagon, hexagon, octagon | five and up |
+
+Named rounds only use the current tier, and a picture is only offered when
+every shape it needs is in that tier — so the same game keeps working for
+years. Two rules matter in the code: the prompt shape is drawn plain white and
+the tray pieces get unrelated colours, so the answer can never be found by
+matching colour; and the **Tilt them** setting rotates pieces, so a triangle
+standing on its point is still a triangle.
 
 Each game gives a star per correct answer and a trophy every five.
 
