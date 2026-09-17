@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Leftovers if a clip render is interrupted (see tts.py)
+tts_cache/*.raw.wav
+tts_cache/*.part

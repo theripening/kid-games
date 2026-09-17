@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#8fd3ff">
+<title>Kid Games</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%;
+    background: linear-gradient(#8fd3ff, #d9f1ff);
+    font-family: "Nunito", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+    color: #1d1d1d;
+    touch-action: manipulation; user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1 {
+    text-align: center; margin: 4vh 0 3vh; font-size: clamp(40px, 10vh, 90px); font-weight: 900;
+    color: #fff; -webkit-text-stroke: 3px #1d1d1d; paint-order: stroke fill;
+  }
+  .games { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; padding: 0 16px 32px; }
+  .tile {
+    width: clamp(240px, 40vw, 420px); aspect-ratio: 4 / 3;
+    background: #fff; border: 8px solid #1d1d1d; border-radius: 36px; box-shadow: 0 10px 0 #1d1d1d;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    text-decoration: none; color: inherit;
+  }
+  .tile:active { transform: translateY(8px); box-shadow: 0 2px 0 #1d1d1d; }
+  .tile .pic { font-size: clamp(80px, 16vw, 150px); line-height: 1; }
+  .tile .name { font-size: clamp(26px, 4vw, 44px); font-weight: 900; }
+</style>
+</head>
+<body>
+  <h1>Kid Games</h1>
+  <div class="games">
+    {% for g in games %}
+    <a class="tile" href="{{ url_for('game', slug=g.slug) }}">
+      <div class="pic">{{ g.icon }}</div>
+      <div class="name">{{ g.name }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</body>
+</html>

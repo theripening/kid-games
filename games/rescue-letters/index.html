@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#8fd3ff">
+<title>Rescue Letters</title>
+<style>
+  :root {
+    --sky: #8fd3ff;
+    --grass: #5cc15c;
+    --road: #4b4b55;
+    --brick: #b5483f;
+    --ink: #1d1d1d;
+    --gold: #ffc400;
+    --red: #e53935;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--grass);
+    font-family: "Nunito", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+    color: var(--ink);
+    touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  .screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ---------- Menu ---------- */
+  #menu {
+    background: linear-gradient(var(--sky) 0 58%, var(--grass) 58% 100%);
+    align-items: center; justify-content: center; gap: 3vh;
+  }
+  #menu h1 {
+    margin: 0; font-size: clamp(40px, 11vh, 96px); font-weight: 900; letter-spacing: 1px;
+    color: var(--red); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
+    text-shadow: 0 6px 0 rgba(0,0,0,.2);
+  }
+  .menu-row { display: flex; gap: 4vw; flex-wrap: wrap; justify-content: center; padding: 0 16px; }
+  .big-choice {
+    width: clamp(220px, 38vw, 440px); height: clamp(180px, 46vh, 360px);
+    background: #fff; border: 8px solid var(--ink); border-radius: 36px;
+    box-shadow: 0 10px 0 var(--ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh;
+    padding: 16px;
+  }
+  .big-choice:active { transform: translateY(8px); box-shadow: 0 2px 0 var(--ink); }
+  .big-choice .pic { width: 100%; height: 70%; display: flex; align-items: center; justify-content: center; gap: 4%; }
+  .big-choice .pic svg { height: 100%; width: auto; max-width: 100%; overflow: visible; }
+  .big-choice .lbl { font-size: clamp(26px, 6vh, 52px); font-weight: 900; }
+  .mini-door {
+    width: 28%; aspect-ratio: 1 / 1.1; display: flex; align-items: center; justify-content: center;
+    font-size: clamp(30px, 8vh, 70px); font-weight: 900;
+    border: 5px solid var(--ink); border-radius: 12px 12px 4px 4px;
+    background: repeating-linear-gradient(#eeeeee 0 16%, #c4c4c4 16% 19%);
+  }
+  .parent {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+    background: rgba(255,255,255,.85); border-radius: 999px; padding: 6px 12px 6px 18px;
+    font-size: 18px; font-weight: 700; max-width: calc(100% - 32px);
+  }
+  .parent .gap { width: 14px; }
+  .parent button {
+    border: 3px solid var(--ink); background: #fff; border-radius: 999px;
+    min-width: 58px; height: 44px; padding: 0 10px; font-size: 20px; font-weight: 900;
+  }
+  .parent button.on { background: var(--gold); }
+
+  .icon-btn {
+    width: clamp(56px, 11vh, 90px); height: clamp(56px, 11vh, 90px); flex: none;
+    border: 5px solid var(--ink); border-radius: 50%; background: #fff;
+    font-size: clamp(28px, 6vh, 48px); line-height: 1;
+    display: flex; align-items: center; justify-content: center; text-decoration: none;
+    box-shadow: 0 5px 0 var(--ink);
+  }
+  .icon-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .corner { position: absolute; top: 16px; left: 16px; }
+
+  /* ---------- Shared top bar ---------- */
+  .topbar {
+    height: clamp(76px, 17vh, 130px); flex: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 0 16px; background: var(--sky);
+    border-bottom: 6px solid var(--ink);
+  }
+  .prompt {
+    display: flex; align-items: center; gap: 14px;
+    height: 84%; padding: 0 26px;
+    background: #fff; border: 6px solid var(--ink); border-radius: 26px;
+    box-shadow: 0 5px 0 var(--ink);
+  }
+  .prompt:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .prompt .speaker { font-size: clamp(26px, 6vh, 50px); }
+  .prompt .sign { font-size: clamp(48px, 12.5vh, 104px); font-weight: 900; line-height: 1; min-width: 1.2em; text-align: center; }
+  .prompt .sign.pulse { animation: pulse .5s; }
+  .prompt .sign.emo { font-size: clamp(34px, 8vh, 68px); }
+  .stars { display: flex; gap: 4px; font-size: clamp(26px, 6.5vh, 54px); line-height: 1; min-width: clamp(56px, 11vh, 90px); justify-content: flex-end; }
+  .stars span { color: rgba(0,0,0,.18); transition: color .3s; }
+  .stars span.got { color: var(--gold); -webkit-text-stroke: 2px var(--ink); animation: pop .5s; }
+
+  /* ---------- Find the letter: roads ---------- */
+  .track { flex: 1; display: flex; flex-direction: column; background: var(--road); }
+  .lane {
+    flex: 1; position: relative; overflow: hidden;
+    border-bottom: 6px dashed rgba(255,255,255,.75);
+  }
+  .lane:last-child { border-bottom: none; }
+  .racer {
+    position: absolute; left: 3%; top: 50%; height: 86%;
+    transform: translate(0, -50%);
+    transition: transform .7s cubic-bezier(.2,.8,.3,1);
+  }
+  .racer.enter { transform: translate(-130%, -50%); }
+  .racer.driving { transition: transform 1.6s cubic-bezier(.55,0,.85,.4); }
+  .racer svg { height: 100%; width: auto; max-width: 62vw; display: block; overflow: visible; animation: idle 1.4s ease-in-out infinite; }
+  .lane.dim .racer { opacity: .45; transition: opacity .4s, transform 1.6s; }
+
+  /* Emergency lights: slow blink when parked, fast with the siren on. */
+  .l1 { animation: blink 1.2s steps(1) infinite; }
+  .l2 { animation: blink 1.2s steps(1) -.6s infinite; }
+  .siren .l1 { animation-duration: .3s; }
+  .siren .l2 { animation-duration: .3s; animation-delay: -.15s; }
+
+  /* ---------- Letter Garage ---------- */
+  .garage {
+    flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 1fr;
+    gap: 1.8vh 1.4vw; padding: 2.2vh 2vw;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(0,0,0,.12) 22px 25px),
+      var(--brick);
+  }
+  .door {
+    display: flex; align-items: center; justify-content: center;
+    border: 5px solid var(--ink); border-radius: 16px 16px 4px 4px;
+    background: repeating-linear-gradient(#eeeeee 0 14%, #c4c4c4 14% 17%);
+    font-size: clamp(34px, 11vh, 92px); font-weight: 900; line-height: 1;
+    box-shadow: 0 5px 0 var(--ink);
+    padding: 0;
+  }
+  .door:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .door.seen { background: repeating-linear-gradient(#ffe27a 0 14%, #f0bf1a 14% 17%); }
+  .gcount { font-size: clamp(22px, 5vh, 40px); font-weight: 900; min-width: clamp(56px, 11vh, 90px); text-align: right; }
+
+  #card {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55); padding: 16px;
+  }
+  #card.show { display: flex; }
+  #card .inner {
+    background: #fff; border: 8px solid var(--ink); border-radius: 40px; box-shadow: 0 12px 0 var(--ink);
+    width: min(92vw, 900px); height: min(88vh, 640px);
+    display: flex; align-items: center; justify-content: space-around; gap: 2vw; padding: 3vh 3vw;
+    animation: pop .45s;
+  }
+  #card .letters { font-size: min(34vh, 22vw); font-weight: 900; line-height: 1; white-space: nowrap; }
+  #card .letters .lo { color: var(--red); }
+  #card .right { display: flex; flex-direction: column; align-items: center; gap: 2vh; }
+  #card .emoji { font-size: min(30vh, 20vw); line-height: 1; animation: idle 1.4s ease-in-out infinite; }
+  #card .word { font-size: min(8vh, 5.5vw); font-weight: 900; text-transform: none; }
+  #card .word b { color: var(--red); }
+
+  /* ---------- Effects ---------- */
+  .driving .wheel { animation: spin .22s linear infinite; }
+  .wheel { transform-box: fill-box; transform-origin: center; }
+  .shake svg { animation: shake .5s; }
+
+  @keyframes idle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2.5%); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes blink { 0% { opacity: 1; } 50% { opacity: .2; } }
+  @keyframes shake { 0%,100% { transform: rotate(0); } 20% { transform: rotate(-6deg); } 40% { transform: rotate(5deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(2deg); } }
+  @keyframes pop { 0% { transform: scale(.3); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+  .confetti { position: fixed; top: -20px; width: 14px; height: 22px; border-radius: 3px; pointer-events: none; z-index: 50; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+  #trophy {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55);
+  }
+  #trophy.show { display: flex; }
+  #trophy .cup { font-size: 45vh; line-height: 1; animation: pop .8s; }
+  #trophy .big { font-size: clamp(40px, 10vh, 90px); font-weight: 900; color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
+</style>
+</head>
+<body>
+
+<!-- ============ MENU ============ -->
+<section id="menu" class="screen active">
+  <a href="../../" class="icon-btn corner" aria-label="All games">🏠</a>
+  <h1>Rescue Letters</h1>
+  <div class="menu-row">
+    <button class="big-choice" data-mode="find" aria-label="Find the letter">
+      <div class="pic" id="menuFindPic"></div>
+      <div class="lbl">Find it!</div>
+    </button>
+    <button class="big-choice" data-mode="garage" aria-label="Letter garage">
+      <div class="pic" id="menuGaragePic"></div>
+      <div class="lbl">Letter Garage</div>
+    </button>
+  </div>
+  <div class="parent">
+    Letters:
+    <button data-set="6">A–F</button>
+    <button data-set="13">A–M</button>
+    <button data-set="26">A–Z</button>
+    <span class="gap"></span>
+    <button data-case="upper">ABC</button>
+    <button data-case="lower">abc</button>
+    <span class="gap"></span>
+    <button id="voiceBtn">🔈 Test voice</button>
+  </div>
+</section>
+
+<!-- ============ FIND THE LETTER ============ -->
+<section id="find" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" data-home aria-label="Menu">🏠</button>
+    <button class="prompt" id="findPrompt" aria-label="Say it again">
+      <span class="speaker">🔊</span><span class="sign" id="findSign">A</span>
+    </button>
+    <div class="stars" data-stars></div>
+  </header>
+  <div class="track" id="track"></div>
+</section>
+
+<!-- ============ LETTER GARAGE ============ -->
+<section id="garage" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" data-home aria-label="Menu">🏠</button>
+    <button class="prompt" id="garagePrompt" aria-label="Say it again">
+      <span class="speaker">🔊</span><span class="sign emo" id="garageSign">🚒</span>
+    </button>
+    <div class="gcount" id="garageCount"></div>
+  </header>
+  <div class="garage" id="garageGrid"></div>
+</section>
+
+<!-- ============ VOICE CHECK (for grown-ups) ============ -->
+<section id="voice" class="screen">
+  <header class="topbar">
+    <button class="icon-btn" data-home aria-label="Menu">🏠</button>
+    <button class="prompt" id="voicePlayAll" aria-label="Play all letters">
+      <span class="speaker">🔊</span><span class="sign emo">Play all</span>
+    </button>
+    <div class="gcount"></div>
+  </header>
+  <div class="garage" id="voiceGrid"></div>
+</section>
+
+<div id="card">
+  <div class="inner">
+    <div class="letters" id="cardLetters"></div>
+    <div class="right">
+      <div class="emoji" id="cardEmoji"></div>
+      <div class="word" id="cardWord"></div>
+    </div>
+  </div>
+</div>
+
+<div id="trophy">
+  <div class="cup" id="trophyCup">🏅</div>
+  <div class="big" id="trophyText">Rescue hero!</div>
+</div>
+
+<script src="/static/kid-voice.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- Helpers ---------------- */
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
+  function rand(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+    return arr;
+  }
+
+  // Every round bumps `gen`; delayed callbacks from an old round check it and bail out.
+  var gen = 0;
+  function later(ms, fn) { var g = gen; setTimeout(function () { if (g === gen) fn(); }, ms); }
+
+  var settings = { set: 6, lower: false };
+  try {
+    var savedSet = parseInt(localStorage.getItem("rescueLetters.set"), 10);
+    if (savedSet) settings.set = savedSet;
+    settings.lower = localStorage.getItem("rescueLetters.case") === "lower";
+  } catch (e) {}
+
+  /* ---------------- Letters ---------------- */
+  var ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  var WORDS = {
+    A: ["Ambulance", "🚑"], B: ["Boat", "🚤"], C: ["Cat", "🐱"], D: ["Dog", "🐶"], E: ["Elephant", "🐘"],
+    F: ["Fire truck", "🚒"], G: ["Giraffe", "🦒"], H: ["Helicopter", "🚁"], I: ["Ice cream", "🍦"],
+    J: ["Juice", "🧃"], K: ["Key", "🔑"], L: ["Lion", "🦁"], M: ["Moon", "🌙"], N: ["Nose", "👃"],
+    O: ["Octopus", "🐙"], P: ["Police car", "🚓"], Q: ["Queen", "👸"], R: ["Rocket", "🚀"],
+    S: ["Siren", "🚨"], T: ["Tractor", "🚜"], U: ["Umbrella", "☂️"], V: ["Van", "🚐"],
+    W: ["Whale", "🐳"], X: ["Fox", "🦊"], Y: ["Yellow", "💛"], Z: ["Zebra", "🦓"]
+  };
+  function show_(L) { return settings.lower ? L.toLowerCase() : L; }
+
+  /* ---------------- Vehicle drawing ---------------- */
+  var INK = "#1d1d1d";
+  function wheel(cx) {
+    return '<g class="wheel"><circle cx="' + cx + '" cy="112" r="20" fill="' + INK + '"/>' +
+      '<circle cx="' + cx + '" cy="112" r="9" fill="#cfcfcf"/>' +
+      '<path d="M' + cx + ' 101 V123 M' + (cx - 11) + ' 112 H' + (cx + 11) + '" stroke="' + INK + '" stroke-width="3"/></g>';
+  }
+  function roundel(cx, cy, r, label) {
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#fff" stroke="' + INK + '" stroke-width="4"/>' +
+      '<text x="' + cx + '" y="' + (cy + 1) + '" text-anchor="middle" dominant-baseline="central" font-size="' + Math.round(r * 1.5) +
+      '" font-weight="900" fill="' + INK + '" font-family="Arial Black, Arial, sans-serif">' + label + '</text>';
+  }
+  function lights(x, y) {
+    return '<rect class="l1" x="' + x + '" y="' + y + '" width="20" height="12" rx="3" fill="#ff3b30" stroke="' + INK + '" stroke-width="3"/>' +
+      '<rect class="l2" x="' + (x + 22) + '" y="' + y + '" width="20" height="12" rx="3" fill="#2f7bff" stroke="' + INK + '" stroke-width="3"/>';
+  }
+  var S = ' stroke="' + INK + '" stroke-width="5" stroke-linejoin="round"';
+  var SHADOW = '<ellipse cx="150" cy="133" rx="138" ry="6" fill="rgba(0,0,0,.3)"/>';
+
+  var VEHICLES = [
+    {
+      name: "fire truck",
+      svg: function (label) {
+        var rungs = "";
+        for (var x = 32; x < 186; x += 20) rungs += '<rect x="' + x + '" y="36" width="5" height="8" fill="#d9d9d9" stroke="' + INK + '" stroke-width="2"/>';
+        return '<svg viewBox="0 0 300 140" aria-hidden="true">' + SHADOW +
+          '<rect x="170" y="48" width="10" height="12" fill="' + INK + '"/>' +
+          '<rect x="18" y="30" width="172" height="6" fill="#d9d9d9" stroke="' + INK + '" stroke-width="3"/>' +
+          '<rect x="18" y="44" width="172" height="6" fill="#d9d9d9" stroke="' + INK + '" stroke-width="3"/>' + rungs +
+          '<rect x="10" y="58" width="196" height="54" rx="8" fill="#e53935"' + S + '/>' +
+          '<rect x="13" y="92" width="190" height="6" fill="#fff"/>' +
+          lights(210, 20) +
+          '<path d="M200 112 V40 Q200 32 208 32 L250 32 Q258 32 263 39 L286 72 Q290 78 290 86 V104 Q290 112 282 112 Z" fill="#e53935"' + S + '/>' +
+          '<path d="M213 42 H248 Q252 42 255 46 L273 72 H213 Z" fill="#cdefff" stroke="' + INK + '" stroke-width="4" stroke-linejoin="round"/>' +
+          '<circle cx="283" cy="92" r="5" fill="#fff6a8" stroke="' + INK + '" stroke-width="3"/>' +
+          wheel(55) + wheel(150) + wheel(245) +
+          roundel(106, 82, 25, label) + '</svg>';
+      }
+    },
+    {
+      name: "ambulance",
+      svg: function (label) {
+        return '<svg viewBox="0 0 300 140" aria-hidden="true">' + SHADOW +
+          lights(150, 10) +
+          '<rect x="10" y="22" width="190" height="90" rx="10" fill="#fff"' + S + '/>' +
+          '<path d="M196 112 V48 Q196 42 202 42 L240 42 Q248 42 253 48 L284 80 Q290 86 290 94 V104 Q290 112 282 112 Z" fill="#fff"' + S + '/>' +
+          '<path d="M208 52 H238 Q243 52 247 56 L268 80 H208 Z" fill="#cdefff" stroke="' + INK + '" stroke-width="4" stroke-linejoin="round"/>' +
+          '<rect x="13" y="88" width="274" height="9" fill="#e53935"/>' +
+          '<path d="M158 44 h10 v-10 h10 v10 h10 v10 h-10 v10 h-10 v-10 h-10 z" fill="#e53935" stroke="' + INK + '" stroke-width="2"/>' +
+          '<circle cx="284" cy="103" r="4" fill="#fff6a8" stroke="' + INK + '" stroke-width="2"/>' +
+          wheel(62) + wheel(238) +
+          roundel(100, 58, 27, label) + '</svg>';
+      }
+    },
+    {
+      name: "police car",
+      svg: function (label) {
+        return '<svg viewBox="0 0 300 140" aria-hidden="true">' + SHADOW +
+          lights(129, 12) +
+          '<path d="M14 82 Q14 62 34 60 L88 58 L112 30 Q118 24 128 24 L176 24 Q188 24 196 34 L218 58 L258 64 Q286 70 286 92 V102 Q286 112 276 112 L24 112 Q14 112 14 102 Z" fill="#1e4fd8"' + S + '/>' +
+          '<path d="M120 34 Q124 30 130 30 L174 30 Q182 30 187 36 L204 57 H104 Z" fill="#cdefff" stroke="' + INK + '" stroke-width="4" stroke-linejoin="round"/>' +
+          '<rect x="104" y="62" width="100" height="44" rx="6" fill="#fff" stroke="' + INK + '" stroke-width="4"/>' +
+          '<circle cx="276" cy="82" r="5" fill="#fff6a8" stroke="' + INK + '" stroke-width="3"/>' +
+          wheel(64) + wheel(236) +
+          roundel(154, 84, 21, label) + '</svg>';
+      }
+    }
+  ];
+
+  /* ---------------- Sound ---------------- */
+  var ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (ac.state === "suspended") ac.resume();
+    return ac;
+  }
+  function tone(type, freq, start, dur, vol, endFreq) {
+    var a = audio(); if (!a) return;
+    var t = a.currentTime + start;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (endFreq) o.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function siren() {
+    var a = audio(); if (!a) return;
+    var t = a.currentTime;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = "triangle";
+    for (var i = 0; i < 5; i++) o.frequency.setValueAtTime(i % 2 ? 620 : 880, t + i * 0.36);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + 0.05);
+    g.gain.setValueAtTime(0.22, t + 1.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.85);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + 1.9);
+  }
+  function honk() {
+    tone("square", 392, 0, 0.16, 0.12); tone("square", 494, 0, 0.16, 0.08);
+    tone("square", 392, 0.22, 0.16, 0.12); tone("square", 494, 0.22, 0.16, 0.08);
+  }
+  function chime() { tone("sine", 660, 0, 0.15, 0.3, 990); tone("sine", 990, 0.12, 0.3, 0.25); }
+  function fanfare() {
+    [523, 659, 784, 1047].forEach(function (f, i) { tone("triangle", f, i * 0.13, i === 3 ? 0.5 : 0.16, 0.25); });
+  }
+
+  /* ---------------- Speech ---------------- */
+  // Voice clips come from the server (see /static/kid-voice.js) and play on the game's audio context.
+  // speak(parts, onPart): letters must be their own part (e.g. ["Find the letter", "A"]) so
+  // they're spoken by name; phonetic spellings like "ay" or "eff" get misread ("I", "E-F-F").
+  KidVoice.init(audio);
+  var speak = KidVoice.speak;
+  (function preload() {
+    var list = ABC.concat(["Find the letter", "Yes!", "That's", "Find", "Fox ends with",
+      "Tap a garage door to find a letter!", "You are a rescue hero! Hooray!", "You found every letter! Hooray!"]);
+    VEHICLES.forEach(function (v) { list.push("Go, " + v.name + "!"); });
+    ABC.forEach(function (L) { list.push("is for " + WORDS[L][0].toLowerCase() + "!"); });
+    KidVoice.preload(list);
+  })();
+
+  /* ---------------- Effects ---------------- */
+  function confetti() {
+    var cols = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fb8c00", "#ec407a", "#fff"];
+    for (var i = 0; i < 45; i++) {
+      var c = document.createElement("div");
+      c.className = "confetti";
+      c.style.left = Math.random() * 100 + "vw";
+      c.style.background = cols[i % cols.length];
+      c.style.animationDuration = 1.4 + Math.random() * 1.4 + "s";
+      c.style.animationDelay = Math.random() * 0.3 + "s";
+      document.body.appendChild(c);
+      (function (el) { setTimeout(function () { el.remove(); }, 3300); })(c);
+    }
+  }
+  function flash(cls, el) {
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  }
+
+  function trophy(cup, text, spoken, next) {
+    var t = $("#trophy");
+    $("#trophyCup").textContent = cup;
+    $("#trophyText").textContent = text;
+    t.classList.add("show");
+    fanfare(); confetti();
+    speak(spoken);
+    var done = false;
+    var close = function () {
+      if (done) return; done = true;
+      t.classList.remove("show"); t.removeEventListener("pointerdown", close);
+      next();
+    };
+    later(4000, function () { t.addEventListener("pointerdown", close); });
+    later(7000, close);
+  }
+
+  var stars = 0;
+  function renderStars() {
+    $$("[data-stars]").forEach(function (box) {
+      var h = "";
+      for (var i = 0; i < 5; i++) h += '<span class="' + (i < stars ? "got" : "") + '">★</span>';
+      box.innerHTML = h;
+    });
+  }
+
+  /* ---------------- Screens ---------------- */
+  function show(id) {
+    gen++;
+    KidVoice.stop();
+    $("#trophy").classList.remove("show");
+    $("#card").classList.remove("show");
+    $$(".screen").forEach(function (s) { s.classList.toggle("active", s.id === id); });
+  }
+
+  function goFullscreen() {
+    var d = document.documentElement;
+    var req = d.requestFullscreen || d.webkitRequestFullscreen;
+    if (req && !document.fullscreenElement && !document.webkitFullscreenElement) {
+      try {
+        var p = req.call(d);
+        if (p && p.then) p.then(function () {
+          if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () {});
+        }).catch(function () {});
+      } catch (e) {}
+    }
+  }
+
+  /* ---------------- Mode: Find the letter ---------------- */
+  var find = { target: "", last: "", locked: false };
+
+  function findRound() {
+    gen++;
+    find.locked = false;
+    var pool = ABC.slice(0, settings.set), t;
+    do { t = pool[rand(0, pool.length - 1)]; } while (t === find.last);
+    find.last = find.target = t;
+
+    var picks = [t];
+    while (picks.length < 3) { var l = pool[rand(0, pool.length - 1)]; if (picks.indexOf(l) < 0) picks.push(l); }
+    shuffle(picks);
+    var vehicles = shuffle(VEHICLES.slice());
+
+    var track = $("#track");
+    track.innerHTML = "";
+    picks.forEach(function (L, i) {
+      var v = vehicles[i];
+      var lane = document.createElement("div");
+      lane.className = "lane";
+      lane.innerHTML = '<div class="racer enter">' + v.svg(show_(L)) + "</div>";
+      lane.addEventListener("pointerdown", function () { findTap(lane, L, v); });
+      track.appendChild(lane);
+    });
+    void track.offsetWidth;
+    $$(".racer", track).forEach(function (r, i) { setTimeout(function () { r.classList.remove("enter"); }, i * 120); });
+
+    var sign = $("#findSign");
+    sign.textContent = show_(t);
+    flash("pulse", sign);
+    later(450, function () { speak(["Find the letter", t]); });
+  }
+
+  function findTap(lane, L, v) {
+    if (find.locked) return;
+    var racer = $(".racer", lane);
+    if (L === find.target) {
+      find.locked = true;
+      $$(".lane", $("#track")).forEach(function (l) { if (l !== lane) l.classList.add("dim"); });
+      racer.classList.add("driving", "siren");
+      later(250, function () { racer.style.transform = "translate(" + (lane.clientWidth + 40) + "px, -50%)"; });
+      siren();
+      speak(["Yes!", L, "Go, " + v.name + "!"]);
+      later(900, confetti);
+      stars++;
+      renderStars();
+      if (stars < 5) { later(2600, findRound); return; }
+      later(2200, function () {
+        trophy("🏅", "Rescue hero!", "You are a rescue hero! Hooray!", function () {
+          stars = 0; renderStars(); findRound();
+        });
+      });
+    } else {
+      find.locked = true;
+      flash("shake", racer);
+      honk();
+      speak(["That's", L, "Find", find.target]);
+      later(700, function () { find.locked = false; });
+    }
+  }
+
+  $("#findPrompt").addEventListener("pointerdown", function () {
+    flash("pulse", $("#findSign"));
+    speak(["Find the letter", find.target]);
+  });
+
+  /* ---------------- Mode: Letter Garage ---------------- */
+  var seen = {};
+
+  function garageStart() {
+    gen++;
+    seen = {};
+    var grid = $("#garageGrid");
+    grid.innerHTML = "";
+    ABC.forEach(function (L) {
+      var d = document.createElement("button");
+      d.className = "door";
+      d.textContent = show_(L);
+      d.setAttribute("aria-label", L);
+      d.addEventListener("click", function () { openCard(L, d); });
+      grid.appendChild(d);
+    });
+    renderCount();
+    later(400, function () { speak("Tap a garage door to find a letter!"); });
+  }
+
+  function renderCount() {
+    $("#garageCount").textContent = Object.keys(seen).length + "/26";
+  }
+
+  function openCard(L, door) {
+    var w = WORDS[L];
+    // Highlight the letter inside the word (X is the last letter of "Fox").
+    var idx = w[0].toUpperCase().indexOf(L);
+    $("#cardLetters").innerHTML = L + '<span class="lo">' + L.toLowerCase() + "</span>";
+    $("#cardEmoji").textContent = w[1];
+    $("#cardWord").innerHTML = w[0].slice(0, idx) + "<b>" + w[0].charAt(idx) + "</b>" + w[0].slice(idx + 1);
+    var card = $("#card");
+    card.classList.remove("show"); void card.offsetWidth; card.classList.add("show");
+    chime();
+    speak(L === "X" ? [L, "Fox ends with", L] : [L, L, "is for " + w[0].toLowerCase() + "!"]);
+    door.classList.add("seen");
+    seen[L] = true;
+    renderCount();
+    card.dataset.openedAt = Date.now();
+  }
+
+  $("#card").addEventListener("pointerdown", function () {
+    var card = $("#card");
+    // Ignore the tail of the tap that opened the card.
+    if (Date.now() - (+card.dataset.openedAt || 0) < 500) return;
+    card.classList.remove("show");
+    if (Object.keys(seen).length === 26) {
+      trophy("🏆", "All the letters!", "You found every letter! Hooray!", garageStart);
+    }
+  });
+
+  $("#garagePrompt").addEventListener("pointerdown", function () {
+    siren();
+    speak("Tap a garage door to find a letter!");
+  });
+
+  /* ---------------- Voice check ---------------- */
+  // Lets a grown-up hear every letter on the tablet's own voice; the door lights up while it plays.
+  function voiceStart() {
+    var grid = $("#voiceGrid");
+    grid.innerHTML = "";
+    ABC.forEach(function (L) {
+      var d = document.createElement("button");
+      d.className = "door";
+      d.textContent = L;
+      d.addEventListener("click", function () { speak(L, function () { lightDoor(L); }); });
+      grid.appendChild(d);
+    });
+  }
+  function lightDoor(L) {
+    $$(".door", $("#voiceGrid")).forEach(function (d) { d.classList.toggle("seen", d.textContent === L); });
+  }
+  $("#voicePlayAll").addEventListener("click", function () {
+    speak(ABC, function (i) { lightDoor(ABC[i]); });
+  });
+  $("#voiceBtn").addEventListener("click", function () {
+    audio();
+    show("voice");
+    voiceStart();
+  });
+
+  /* ---------------- Menu wiring ---------------- */
+  function renderMenu() {
+    $$("[data-set]").forEach(function (b) { b.classList.toggle("on", +b.getAttribute("data-set") === settings.set); });
+    $$("[data-case]").forEach(function (b) { b.classList.toggle("on", (b.getAttribute("data-case") === "lower") === settings.lower); });
+    $("#menuFindPic").innerHTML = VEHICLES[0].svg(show_("B"));
+    $("#menuGaragePic").innerHTML = ["A", "B", "C"].map(function (L) { return '<div class="mini-door">' + show_(L) + "</div>"; }).join("");
+  }
+  $$("[data-set]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      settings.set = +b.getAttribute("data-set");
+      try { localStorage.setItem("rescueLetters.set", settings.set); } catch (e) {}
+      renderMenu();
+    });
+  });
+  $$("[data-case]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      settings.lower = b.getAttribute("data-case") === "lower";
+      try { localStorage.setItem("rescueLetters.case", settings.lower ? "lower" : "upper"); } catch (e) {}
+      renderMenu();
+    });
+  });
+  renderMenu();
+
+  $$(".big-choice").forEach(function (b) {
+    b.addEventListener("click", function () {
+      audio();
+      goFullscreen();
+      var mode = b.getAttribute("data-mode");
+      show(mode);
+      if (mode === "find") { stars = 0; renderStars(); findRound(); } else garageStart();
+    });
+  });
+  $$("[data-home]").forEach(function (b) {
+    b.addEventListener("click", function () { show("menu"); });
+  });
+
+  document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  renderStars();
+})();
+</script>
+</body>
+</html>
